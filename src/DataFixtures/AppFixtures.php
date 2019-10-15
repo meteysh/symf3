@@ -73,8 +73,8 @@ class AppFixtures extends Fixture
 
     public function loadTrainers(ObjectManager $manager)
     {
-        $numberRows = 30000;
-        $blockNum = 1000;
+        $numberRows = 300000;
+        $blockNum = 100;
         $hundredSpace = str_pad(' ', 100, ' ');
         $countLoop = $numberRows/$blockNum;
         for ($j=0 ; $j<$countLoop ; $j++) {
@@ -110,17 +110,19 @@ class AppFixtures extends Fixture
 
             $startTime = microtime(true);
             $manager->flush();
+            $manager->clear();
             $finishTime = microtime(true);
             $timeExecBlock = $finishTime  - $startTime;
             $fullTime = $timeExecBlock * ($countLoop);
             $estimatedTime = (int)round($fullTime - ($timeExecBlock * $j));
 
-            $minute = (int)round($estimatedTime / 60);
+            $minute = (int)floor($estimatedTime / 60);
+            $second = $estimatedTime - $minute * 60;
             $countPound = (100/$countLoop)*($j+1);
             $progressBar = str_pad(str_pad('#', $countPound, '#'), 100, '.');
 
 
-            echo " Осталось примерно $minute минут $estimatedTime секунд $progressBar \r";
+            echo " Осталось примерно $minute минут $second секунд $progressBar \r";
 
         }
         echo "$hundredSpace $hundredSpace \r Успешно завершено! \n";

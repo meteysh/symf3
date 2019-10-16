@@ -9,6 +9,10 @@ use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Question\Question;
+use Symfony\Component\Config\Definition\Exception\Exception;
+use App\Controller\Lesson;
+use App\Controller\Training;
+use App\Controller\TaskTrainer;
 
 class TrainerCommand extends Command
 {
@@ -23,10 +27,14 @@ class TrainerCommand extends Command
 
     public function execute(InputInterface $input, OutputInterface $output)
     {
+        $taskDo = new Lesson();
         $id = $input->getArgument('id');
         $task = $input->getArgument('task');
+
         $output->writeln(
-            sprintf('Номер ID тренера - %s и задача - %s', $id, $task ?? 'default')
+            $taskDo->showTask()
         );
     }
 }
+
+//Можно принимать аргументы - ID и имя задачи командой: php bin/console console:task:run 5 lesson

@@ -74,7 +74,7 @@ class AppFixtures extends Fixture
     public function loadTrainers(ObjectManager $manager)
     {
         $manager->getConnection()->getConfiguration()->setSQLLogger(null);
-        $numberRows = 1500000;
+        $numberRows = 3000000;
         $blockNum = 1000;
         $hundredSpace = str_pad(' ', 100, ' ');
         $countLoop = $numberRows/$blockNum;

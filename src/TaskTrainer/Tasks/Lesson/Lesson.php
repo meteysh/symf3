@@ -1,14 +1,15 @@
 <?php
 
 
-namespace App\Controller;
+namespace App\TaskTrainer\Tasks\Lesson;
 
+use App\TaskTrainer\TaskTrainerInterface;
 
 /**
  * Class Lesson
  * @package App\Controller
  */
-class Lesson implements TaskTrainer
+class Lesson implements TaskTrainerInterface
 {
     public function showTask()
     {

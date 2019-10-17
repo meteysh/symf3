@@ -1,14 +1,14 @@
 <?php
 
 
-namespace App\Controller;
+namespace App\TaskTrainer;
 
 /**
  * Interface TaskTrainer
  * @package App\Controller
  */
 
-interface TaskTrainer
+interface TaskTrainerInterface
 {
     public function showTask();
 }

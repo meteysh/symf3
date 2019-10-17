@@ -8,11 +8,11 @@ use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Component\Console\Question\Question;
 use Symfony\Component\Config\Definition\Exception\Exception;
-use App\Controller\Lesson;
-use App\Controller\Training;
-use App\Controller\TaskTrainer;
+use App\TaskTrainer\Tasks\Lesson\Lesson;
+use App\TaskTrainer\Tasks\Training\Training;
+use App\TaskTrainer\TaskTrainerInterface;
+use App\TaskTrainer\TaskFactory;
 
 class TrainerCommand extends Command
 {
@@ -27,10 +27,11 @@ class TrainerCommand extends Command
 
     public function execute(InputInterface $input, OutputInterface $output)
     {
-        $taskDo = new Lesson();
         $id = $input->getArgument('id');
         $task = $input->getArgument('task');
 
+
+        $taskDo = TaskFactory::createTask($task);
         $output->writeln(
             $taskDo->showTask()
         );
@@ -38,3 +39,5 @@ class TrainerCommand extends Command
 }
 
 //Можно принимать аргументы - ID и имя задачи командой: php bin/console console:task:run 5 lesson
+
+

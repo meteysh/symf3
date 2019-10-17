@@ -49,3 +49,10 @@ php ./bin/console console:task:run 1 lesson
 telegram (в рабочее время с ПН по ПТ с 9.00 до 21.00).
 
 У вас есть квота из 3-х подсказок для консультации по выполнению задания.
+
+по пунктам 1 и 2 :
+php bin/console make:migration     выполнить миграцию, чтобы у нас появилась таблица в нашей базе!
+php bin/console doctrine:migrations:migrate    чтобы запустить миграцию
+php bin/console doctrine:fixtures:load   запустить наши фикстуры
+
+по пункту 3 вместо Lesson может быть Training ( или все что угодно в дальнейшем): php bin/console console:task:run 5 lesson

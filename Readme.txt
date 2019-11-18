@@ -60,3 +60,91 @@ php bin/console doctrine:fixtures:load   запустить наши фикст�
 папка TaskTrainer
 
 по пункту 3: вместо Lesson может быть Training ( или все что угодно в дальнейшем): php bin/console console:task:run 5 lesson
+
+пункт 4:
+
+Добавляем вирт столбцы:
+ALTER TABLE `trainer` ADD COLUMN `salary_virtual` INT GENERATED ALWAYS AS (`schedule` ->> '$.salary') NOT NULL AFTER `schedule`;
+ALTER TABLE `trainer` ADD COLUMN `personal_virtual` INT GENERATED ALWAYS AS (IF(`schedule` ->> '$.personal' = 'true', 1 , 0)) NOT NULL AFTER `salary_virtual`; //с условием
+ALTER TABLE `trainer` ADD COLUMN `weekend_virtual` INT GENERATED ALWAYS AS (IF(`schedule` ->> '$.weekend' = 'true', 1 , 0)) NOT NULL AFTER `personal_virtual`; //с условием
+
+Добавляем индексы:
+CREATE INDEX `salary_idx` ON `trainer`(`salary_virtual`);
+CREATE INDEX `personal_idx` ON `trainer`(`personal_virtual`); --индекс можно добавить только числовому полю
+CREATE INDEX `weekend_idx` ON `trainer`(`weekend_virtual`);  --индекс можно добавить только числовому полю
+CREATE INDEX `date_end_idx` ON `trainer`(`date_end`);
+
+SELECT * FROM `trainer` WHERE AND JSON_CONTAINS(`schedule`, '{\"salary\": >=700}')  AND JSON_CONTAINS(`schedule`, '{\"weekend\":true}') AND JSON_CONTAINS(`schedule`, '{\"personal\":true}') limit 10;
+
+
+Итоговый запрос: EXPLAIN SELECT * FROM `trainer` WHERE date_end is null
+                                                 AND `schedule`->'$.salary[0]' >= 700
+                                                 AND `schedule`->'$.personal[0]'=true
+                                                 AND `schedule`->'$.weekend[0]'=true ;
+450136 rows in set (5.12 sec)
+
++----+-------------+---------+------------+------+---------------+------+---------+------+---------+----------+-------------+
+| id | select_type | table   | partitions | type | possible_keys | key  | key_len | ref  | rows    | filtered | Extra       |
++----+-------------+---------+------------+------+---------------+------+---------+------+---------+----------+-------------+
+|  1 | SIMPLE      | trainer | NULL       | ALL  | NULL          | NULL | NULL    | NULL | 2872907 |    10.00 | Using where |
++----+-------------+---------+------------+------+---------------+------+---------+------+---------+----------+-------------+
+
+
+Новый запрос: EXPLAIN SELECT * FROM `trainer` WHERE date_end is null AND salary_virtual >= 700 AND personal_virtual = 'true'  AND weekend_virtual = 'true';
+1799949 rows in set, 2 warnings (8.80 sec)
++----+-------------+---------+------------+------+---------------+------+---------+------+---------+----------+-------------+
+| id | select_type | table   | partitions | type | possible_keys | key  | key_len | ref  | rows    | filtered | Extra       |
++----+-------------+---------+------------+------+---------------+------+---------+------+---------+----------+-------------+
+|  1 | SIMPLE      | trainer | NULL       | ALL  | NULL          | NULL | NULL    | NULL | 2872907 |     0.03 | Using where |
++----+-------------+---------+------------+------+---------------+------+---------+------+---------+----------+-------------+
+
+Запрос с числовым полем и индексами по виртуальноым столбцам:
+EXPLAIN SELECT * FROM `trainer` WHERE date_end is null
+                                AND salary_virtual >= 700
+                                AND personal_virtual = true
+                                AND weekend_virtual = true;
+450136 rows in set (36.86 sec)
+450136 rows in set (27.97 sec)   ->> с индексами!
++----+-------------+---------+------------+------+--------------------------------------------------+--------------+---------+-------+---------+----------+------------------------------------+
+| id | select_type | table   | partitions | type | possible_keys                                    | key          | key_len | ref   | rows    | filtered | Extra                              |
++----+-------------+---------+------------+------+--------------------------------------------------+--------------+---------+-------+---------+----------+------------------------------------+
+|  1 | SIMPLE      | trainer | NULL       | ref  | date_end_idx,salary_idx,personal_idx,weekend_idx | date_end_idx | 4       | const | 1435320 |    12.50 | Using index condition; Using where |
++----+-------------+---------+------------+------+--------------------------------------------------+--------------+---------+-------+---------+----------+------------------------------------+
+
+
+SELECT *
+FROM trainer
+WHERE date_end BETWEEN '2019-01-01' AND '2019-09-01'
+AND salary_virtual >= 700
+AND personal_virtual = 1
+AND weekend_virtual = 1 LIMIT 1000;
+без инд 16,8 sec после ИНД 5,1 sec
+
+SELECT *
+FROM trainer
+WHERE date_end BETWEEN '2019-01-01' AND '2019-09-01'
+AND schedule->>'$.salary' >= 700
+AND schedule->>'$.personal' = 'true'
+AND schedule->>'$.weekend' = 'true' LIMIT 1000;
+без инд 16.77 sec после ИНД  0.17 sec
+
+
+SELECT *
+FROM trainer
+WHERE date_end is null
+AND schedule->>'$.salary' >= 700
+AND schedule->>'$.personal' = 'true'
+AND schedule->>'$.weekend' = 'true' ;
+ПОЛНЫЙ после ИНД  44.7 sec
+
+SELECT *
+FROM trainer
+WHERE date_end is null
+AND schedule->>'$.salary' >= 700
+AND schedule->>'$.personal' = 'true'
+AND schedule->>'$.weekend' = 'true' ;
+ПОЛНЫЙ после ИНД  55,7 sec
+
+после индексов напрямую быстрее но указаны два индекса в использовании
+а по вирт столбцам указаны все 4 индекса но запрос чуть медленне.
+Вывод: скорость обработки запроса значительно увеличивается при добавлении индексов, но при LIMIT
